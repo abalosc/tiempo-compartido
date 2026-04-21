@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Coparentalidad - Registro de Tiempo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print { display: none; }
+            .print-only { display: block !important; }
+            body { background: white; p: 0; }
+            .card { shadow: none; border: 1px solid #eee; }
+        }
+        .card { @apply bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-6; }
+        .btn-primary { @apply bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg active:transform active:scale-95; }
+        .btn-secondary { @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-all; }
+        .stat-val { @apply text-4xl font-extrabold text-indigo-900; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-900">
+    <div class="max-w-5xl mx-auto p-4 md:p-10">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 border-b pb-6 border-slate-200">
+            <div class="text-center md:text-left mb-4 md:mb-0">
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">Panel de Coparentalidad</h1>
+                <p class="text-slate-500 font-medium">Registro de equilibrio de cuidado personal y salud</p>
+            </div>
+            <div class="flex gap-2 no-print">
+                <button onclick="window.print()" class="btn-secondary flex items-center gap-2">
+                    <span>🖨️</span> Imprimir Reporte
+                </button>
+            </div>
+        </header>
+
+        <!-- Formulario de Entrada -->
+        <div class="no-print">
+            <div class="card bg-indigo-50 border-indigo-100">
+                <h2 class="text-lg font-bold text-indigo-900 mb-4 flex items-center">
+                    <span class="mr-2">📝</span> Ingreso de datos de la semana
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-indigo-700 mb-2 uppercase tracking-wider">Horas con Verónica</label>
+                        <input type="number" id="inputA" class="w-full p-4 border-2 border-indigo-200 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition-all text-xl" placeholder="Ej: 84">
+                        <p class="text-xs text-indigo-500 mt-2 italic">* Incluye pernoctes y traslados.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-indigo-700 mb-2 uppercase tracking-wider">Horas Contigo (Papá)</label>
+                        <input type="number" id="inputB" class="w-full p-4 border-2 border-indigo-200 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition-all text-xl" placeholder="Ej: 84">
+                        <p class="text-xs text-indigo-500 mt-2 italic">* Incluye gestión médica y noches de vigilancia.</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <label class="block text-sm font-bold text-indigo-700 mb-2 uppercase tracking-wider">Notas de Salud / Observaciones (Opcional)</label>
+                    <textarea id="obs" class="w-full p-4 border-2 border-indigo-200 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition-all" rows="3" placeholder="Ej: Augusto tuvo fiebre el martes, se gestionó receta de hormona el miércoles..."></textarea>
+                </div>
+
+                <button onclick="procesarResultados()" class="btn-primary w-full mt-6">
+                    Generar Balance de Tiempo
+                </button>
+            </div>
+        </div>
+
+        <!-- Resultados Dashboard -->
+        <div id="dashboard" class="hidden animate-in fade-in duration-700">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <!-- Card Madre -->
+                <div class="card !mb-0 border-t-8 border-t-purple-500">
+                    <p class="text-xs font-bold text-slate-400 uppercase mb-2">Con Verónica</p>
+                    <div class="stat-val" id="resValA">0h</div>
+                    <div class="text-purple-600 font-bold" id="resPercA">0%</div>
+                </div>
+                <!-- Card Padre -->
+                <div class="card !mb-0 border-t-8 border-t-blue-500">
+                    <p class="text-xs font-bold text-slate-400 uppercase mb-2">Contigo (Papá)</p>
+                    <div class="stat-val" id="resValB">0h</div>
+                    <div class="text-blue-600 font-bold" id="resPercB">0%</div>
+                </div>
+                <!-- Card Diferencia -->
+                <div class="card !mb-0 bg-slate-800 text-white border-none">
+                    <p class="text-xs font-bold text-slate-400 uppercase mb-2">Desvío de Equilibrio</p>
+                    <div class="stat-val !text-white" id="resDiff">0%</div>
+                    <p class="text-xs text-slate-400 mt-2" id="resDiffText">Referencia: 50/50 ideal</p>
+                </div>
+            </div>
+
+            <!-- Gráfico de Barra Visual -->
+            <div class="card overflow-hidden">
+                <div class="flex justify-between text-sm font-bold mb-3">
+                    <span class="text-purple-600">DISTRIBUCIÓN MADRE</span>
+                    <span class="text-blue-600">DISTRIBUCIÓN PADRE</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-12 flex overflow-hidden border-4 border-white shadow-inner">
+                    <div id="barA" class="bg-purple-500 h-full flex items-center justify-center text-white font-bold transition-all duration-1000" style="width: 50%"></div>
+                    <div id="barB" class="bg-blue-500 h-full flex items-center justify-center text-white font-bold transition-all duration-1000" style="width: 50%"></div>
+                </div>
+            </div>
+
+            <!-- Informe de Observaciones (Para impresión) -->
+            <div id="printNotes" class="card bg-white border-l-8 border-l-indigo-600">
+                <h3 class="font-black text-slate-800 mb-3 uppercase tracking-tighter">Informe de Situación</h3>
+                <div id="adviceText" class="text-slate-700 leading-relaxed space-y-4"></div>
+                <div id="displayObs" class="mt-4 p-4 bg-slate-50 rounded-lg italic text-slate-600 border border-slate-100"></div>
+            </div>
+            
+            <p class="text-center text-xs text-slate-400 mt-10 print-only">Documento generado para fines de organización de coparentalidad según CCyC Art. 650.</p>
+        </div>
+    </div>
+
+    <script>
+        function procesarResultados() {
+            const hA = parseFloat(document.getElementById('inputA').value) || 0;
+            const hB = parseFloat(document.getElementById('inputB').value) || 0;
+            const obs = document.getElementById('obs').value;
+            
+            if (hA === 0 && hB === 0) return;
+
+            const total = hA + hB;
+            const pA = (hA / total * 100).toFixed(1);
+            const pB = (hB / total * 100).toFixed(1);
+            const diff = Math.abs(pA - pB).toFixed(1);
+
+            // Actualizar Textos
+            document.getElementById('resValA').innerText = hA + 'h';
+            document.getElementById('resValB').innerText = hB + 'h';
+            document.getElementById('resPercA').innerText = pA + '% del tiempo total';
+            document.getElementById('resPercB').innerText = pB + '% del tiempo total';
+            document.getElementById('resDiff').innerText = diff + '%';
+            
+            // Actualizar Barras
+            document.getElementById('barA').style.width = pA + '%';
+            document.getElementById('barA').innerText = pA + '%';
+            document.getElementById('barB').style.width = pB + '%';
+            document.getElementById('barB').innerText = pB + '%';
+
+            // Observaciones
+            document.getElementById('displayObs').innerText = obs ? "Observaciones de la semana: " + obs : "Sin observaciones adicionales.";
+
+            // Recomendación Dinámica
+            let advice = "";
+            if (diff < 10) {
+                advice = "<p>✅ <strong>Equilibrio Óptimo:</strong> El tiempo compartido se encuentra dentro de los parámetros de coparentalidad saludable. Ambos progenitores mantienen una presencia constante en la vida de los menores.</p>";
+            } else if (hA > hB) {
+                advice = "<p>⚠️ <strong>Desviación hacia Madre:</strong> Se registra una mayor carga horaria en el domicilio materno. Se recomienda evaluar si el padre puede compensar con tareas de gestión de salud o traslados adicionales para mantener el vínculo fluido.</p>";
+            } else {
+                advice = "<p>⚠️ <strong>Desviación hacia Padre:</strong> Se registra mayor permanencia con el progenitor paterno. Esto refuerza el rol del padre como cuidador activo y garantiza el seguimiento de los tratamientos médicos complejos.</p>";
+            }
+            
+            document.getElementById('adviceText').innerHTML = advice;
+            document.getElementById('dashboard').classList.remove('hidden');
+            
+            // Scroll suave a resultados
+            document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
